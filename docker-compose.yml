@@ -1,0 +1,34 @@
+version: '3.7'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    hostname: my-rabbit
+    ports:
+      - "15672:15672"
+      - "5672:5672"
+
+
+  postgres-db:
+    image: postgres:11-alpine
+    environment:
+      - POSTGRES_PASSWORD=password
+
+  crd:
+    environment:
+#      - DJANGO_SETTINGS_MODULE=svc_backoffice.settings.base
+#      - SVC_BACKOFFICE_CONFIG=config/svc_backoffice.json
+       - RABBITMQ_URL=amqp://rabbitmq
+       - PSQL_DB_HOST=postgres-db
+    build: .
+    image: crd:v1
+    command: bash -c "
+        pipenv run python manage.py migrate 
+        && pipenv run python manage.py runserver 0.0.0.0:8000 
+      "
+    volumes:
+      - .:/code
+    ports:
+      - "9000:8000"
+    depends_on:
+      - postgres-db
